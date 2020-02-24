@@ -23,7 +23,7 @@ namespace DbSizeCheker
         public static List<ConnectionStringSettings> ConnectionStrings { get => new List<ConnectionStringSettings>(_connectionStrings); }
         public static List<string> ServerNames { get => _connectionStrings.Select(cs => cs.Name).ToList(); }
 
-        public static string GoogleLogin { get => ConfigurationManager.AppSettings ["GoogleUser"] ?? "default"; }
+        public static string Username { get => ConfigurationManager.AppSettings ["UserName"] ?? "default"; }
 
         public static string GoogleTableId
         {
@@ -39,7 +39,7 @@ namespace DbSizeCheker
         {
             get 
             {
-                if (int.TryParse(ConfigurationManager.AppSettings.Get("TimerIn"), out int seconds))
+                if (int.TryParse(ConfigurationManager.AppSettings.Get("TimerInterval"), out int seconds))
                     return seconds;
                 else return 30;
 

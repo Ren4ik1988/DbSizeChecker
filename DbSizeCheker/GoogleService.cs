@@ -58,12 +58,12 @@ namespace DbSizeCheker
                 // Placeholder - название файла, значение берется из App.config по ключу GoogleUser.
                 // Если данный параметр не определен в файле конфигурации, устанавливается название по умолчанию - default.json
                 // При таком подходе пользователь имеет возможность переключаться между аккаунтами без необходимости повторной аутентификации, меняя параметр GoogleUser в файле конфигурации перед запуском программы
-                string credPath = $"{Configurator.GoogleLogin}.json";
+                string credPath = $"{Configurator.Username}.json";
 
                 _credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
                     GoogleClientSecrets.Load(stream).Secrets,
                     _scopes,
-                    Configurator.GoogleLogin,
+                    Configurator.Username,
                     CancellationToken.None,
                     new FileDataStore(credPath, true)).Result;
                 Console.WriteLine("Авторизация в сервисе \"Google tables\" прошла успешно.");

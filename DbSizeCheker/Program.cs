@@ -91,7 +91,7 @@ namespace DbSizeCheker
         // Авторизация в гугл-таблицах и подготовка таблицы
         static void prepareGoogleTables()
         {
-            googleService = GoogleService.LogIn(Configurator.GoogleLogin);
+            googleService = GoogleService.LogIn(Configurator.Username);
             Configurator.GoogleTableId = googleService.SetTable(Configurator.GoogleTableId, Configurator.ServerNames);
         }
 
