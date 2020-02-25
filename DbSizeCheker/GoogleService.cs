@@ -47,6 +47,7 @@ namespace DbSizeCheker
 
         #region Private methods
 
+        // Авторизация в google.com
         private void Auth(string googleLogin)
         {
             using (var stream = new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
@@ -78,6 +79,7 @@ namespace DbSizeCheker
 
         }
 
+        // Создание новой таблицы с необходимыми листами
         private string createSpreadSheet(string spreadSheetName, List<string> sheetNames)
         {
             var s = new Spreadsheet();
@@ -107,6 +109,7 @@ namespace DbSizeCheker
             return s.SpreadsheetId;
         }
 
+        // Формирование табличных данных
         private ValueRange replaceContnet(string serverName, List<DbSize> dbSizeList)
         {
             IList<IList<object>> data = new List<IList<object>>();
@@ -139,6 +142,7 @@ namespace DbSizeCheker
             return body;           
         }
 
+        // Создание листа в таблице
         private void createSheets(string sheetName)
         {
             var sheetRequest = new AddSheetRequest();
@@ -163,7 +167,7 @@ namespace DbSizeCheker
         #region Public methods
 
         // Если в файле конфигурации не определен ID таблицы, создается новая c листами для хранения данных из БД. 
-        // Если ID определен, проверяется доступ к таблице, а так же наличие листов для хранения данных из БД, недостающие листы создаются.
+        // Если ID определен, проверяется наличие таблицы, а так же наличие листов для хранения данных из БД, недостающие листы создаются.
         public string SetTable(string tableId, List<string> sheetNames)
         {
             if (!String.IsNullOrWhiteSpace(tableId))
@@ -193,18 +197,25 @@ namespace DbSizeCheker
             return createSpreadSheet(_applicationName, sheetNames);
         }
 
+        // Очистка старых записей(если количество БД на сервере уменьшилось, лишние строки в таблице должны быть удалены) и публикация новых.
         public void UpdateSpreadSheet(Dictionary<string, List<DbSize>> serverInfoCollection)
         {
-            BatchUpdateValuesRequest request = new BatchUpdateValuesRequest();
-            request.Data = new List<ValueRange>();
-            request.ValueInputOption = "USER_ENTERED";
+            BatchUpdateValuesRequest addRequest = new BatchUpdateValuesRequest();
+            BatchClearValuesRequest clearRequest = new BatchClearValuesRequest();
+
+            clearRequest.Ranges = new List<string>();           
+
+            addRequest.Data = new List<ValueRange>();
+            addRequest.ValueInputOption = "USER_ENTERED";
 
             foreach (var server in serverInfoCollection)
             {
-                request.Data.Add(replaceContnet(server.Key, server.Value));
+                clearRequest.Ranges.Add($"{server.Key}!A2:D50");
+                addRequest.Data.Add(replaceContnet(server.Key, server.Value));
             }
 
-             _service.Spreadsheets.Values.BatchUpdate(request, _spreadSheetId).Execute();
+            _service.Spreadsheets.Values.BatchClear(clearRequest, _spreadSheetId).Execute();
+            _service.Spreadsheets.Values.BatchUpdate(addRequest, _spreadSheetId).Execute();
         }
 
         #endregion

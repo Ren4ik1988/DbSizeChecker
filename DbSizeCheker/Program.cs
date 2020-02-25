@@ -29,47 +29,86 @@ namespace DbSizeCheker
                 Console.WriteLine("Проверка подключения к сервису \"Google SpreadSheets\".\n\r");
                 prepareGoogleTables();
 
+                // Таймер запускается через каждый 30 секунд, либо через промежуток времени определенный в файле конфигурации
                 timer = new Timer(TimeSpan.FromSeconds(Configurator.TimerInterval).TotalMilliseconds);
                 timer.AutoReset = true;
                 timer.Elapsed += updateData;
                 timer.Enabled = true;
 
-                Console.WriteLine("\n\rПрограмма запущена. Для выхода из программы нажмите клавишу \"Q\"\n\r");
-                //Немедленный запуск метода
+                Console.WriteLine($"\n\rПрограмма запущена. Интервал обновления данных - {Configurator.TimerInterval} секунд. Для выхода из программы нажмите клавишу \"Q\"\n\r");
+
+                // Первый запуск метода вручную, так как таймер сработает только через указанный интервал
                 updateData(null, null);
+
+
+                //Закрытие программы по клавише
+                while (Console.ReadKey().Key != ConsoleKey.Q)
+                {
+                    Console.WriteLine("\n\rДля завершения работы программы нажмите на клавишу \"Q\"\n\r");
+                }
+
+                timer.Stop();
+                timer.Dispose();
             }
             else
             {
-                Console.WriteLine("\n\rВ файле конфигурации не найдена информация о базе данных. Программа остановлена. ");
+                Console.WriteLine("\n\rВ файле конфигурации не найдена информация о базе данных. Программа остановлена. Нажмите Enter для выхода.");
+                Console.ReadLine();
             }
 
-            while (Console.ReadKey().Key != ConsoleKey.Q)
-            {
-                
-            }
         }
 
+        // Метод вызывается по событию timer.Elapsed
         private static void updateData(object sender, ElapsedEventArgs e)
         {
-            extractDbInfo();
-            googleService.UpdateSpreadSheet(serverInfoCollection);
-            Console.WriteLine("Таблица обновлена.\n\r");
+            if (extractDbInfo())
+            {
+                Console.WriteLine("Данные успешно извлечены.");
+
+                googleService.UpdateSpreadSheet(serverInfoCollection);
+
+                Console.WriteLine("Таблица обновлена.\n\r");
+            }
+            else
+            {
+                Console.WriteLine($"Не удалось подключиться ни к одному из серверов баз данных. Повторная попытка через {Configurator.TimerInterval} секунд.\n\r");
+            }
         }
 
-        private static void extractDbInfo()
+        // Извлекает данные с сервера, если успешно - возвращает true
+        private static bool extractDbInfo()
         {
             serverInfoCollection.Clear();
 
-            Parallel.ForEach(connectionStrings, cs => {
+            foreach (var cs in connectionStrings)
+            {
                 Console.WriteLine($"Извлечение данных с сервера \"{cs.Name}\"...");
+
+                List<DbSize> dbInfo;
+
+                try
+                {
+                    dbInfo = postgreSqlService.GetDbsSize(cs.ConnectionString);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при подключения к серверу \"{cs.Name}\". Проверьте корректность строки подключения.");
+                    continue;
+                }
+
                 serverInfoCollection.Add(cs.Name, postgreSqlService.GetDbsSize(cs.ConnectionString));
-            });
+            }
 
-            countFreeDiskSpace();
+            if (serverInfoCollection.Count() > 0)
+            {
+                countFreeDiskSpace();
+                return true;
+            }
 
-            Console.WriteLine("Данные успешно извлечены.");
+            return false;
         }
 
+        // Рассчет свободного места на диске
         private static void countFreeDiskSpace()
         {
             foreach(var info in serverInfoCollection)
@@ -89,7 +128,7 @@ namespace DbSizeCheker
         }
 
         // Авторизация в гугл-таблицах и подготовка таблицы
-        static void prepareGoogleTables()
+        private static void prepareGoogleTables()
         {
             googleService = GoogleService.LogIn(Configurator.Username);
             Configurator.GoogleTableId = googleService.SetTable(Configurator.GoogleTableId, Configurator.ServerNames);

@@ -15,7 +15,8 @@ namespace DbSizeCheker
             _connectionStrings = new List<ConnectionStringSettings>();
             for (int i = 0; i < collection.Count; i++)
             {
-                _connectionStrings.Add(collection[i]);
+                if(collection[i].ProviderName.ToLower().Contains("npgsql"))
+                    _connectionStrings.Add(collection[i]);
             }
         }
 
@@ -23,7 +24,7 @@ namespace DbSizeCheker
         public static List<ConnectionStringSettings> ConnectionStrings { get => new List<ConnectionStringSettings>(_connectionStrings); }
         public static List<string> ServerNames { get => _connectionStrings.Select(cs => cs.Name).ToList(); }
 
-        public static string Username { get => ConfigurationManager.AppSettings ["UserName"] ?? "default"; }
+        public static string Username { get => ConfigurationManager.AppSettings ["Username"] ?? "default"; }
 
         public static string GoogleTableId
         {
@@ -48,7 +49,7 @@ namespace DbSizeCheker
 
         public static bool IsConfigurationCorrect()
         {
-            return _connectionStrings.Count > 0;
+            return _connectionStrings.Count() > 0;
         }
 
         public static int GetDiskSize(string serverName)
