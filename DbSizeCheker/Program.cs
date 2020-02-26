@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +16,11 @@ namespace DbSizeCheker
         private static List<ConnectionStringSettings> connectionStrings;
         private static Timer timer;
         private static Dictionary<string, List<DbSize>> serverInfoCollection;
+
+        #region Diagnostic (uncommit to include diagnostic)
+        //private static long elapsedCount;
+        //private static long totalElapsed;
+        #endregion
 
         static void Main(string[] args)
         {
@@ -33,12 +39,11 @@ namespace DbSizeCheker
                 timer = new Timer(TimeSpan.FromSeconds(Configurator.TimerInterval).TotalMilliseconds);
                 timer.AutoReset = true;
                 timer.Elapsed += updateData;
-                timer.Enabled = true;
 
                 Console.WriteLine($"\n\rПрограмма запущена. Интервал обновления данных - {Configurator.TimerInterval} секунд. Для выхода из программы нажмите клавишу \"Q\"\n\r");
 
                 // Первый запуск метода вручную, так как таймер сработает только через указанный интервал
-                updateData(null, null);
+                updateData(timer, null);
 
 
                 //Закрытие программы по клавише
@@ -61,6 +66,14 @@ namespace DbSizeCheker
         // Метод вызывается по событию timer.Elapsed
         private static void updateData(object sender, ElapsedEventArgs e)
         {
+            var timer = sender as Timer;
+            timer.Stop();
+
+            #region Diagnostic (uncommit to include diagnostic)
+            //Stopwatch stopwatch = new Stopwatch();
+            //stopwatch.Start();
+            #endregion
+
             if (extractDbInfo())
             {
                 Console.WriteLine("Данные успешно извлечены.");
@@ -73,6 +86,15 @@ namespace DbSizeCheker
             {
                 Console.WriteLine($"Не удалось подключиться ни к одному из серверов баз данных. Повторная попытка через {Configurator.TimerInterval} секунд.\n\r");
             }
+
+            #region Diagnostic (uncommit to include diagnostic)
+            //stopwatch.Stop();
+            //totalElapsed += stopwatch.ElapsedMilliseconds;
+            //Console.WriteLine($"Затрачено {stopwatch.ElapsedMilliseconds} мс. Среднее значение за {++elapsedCount} итераций - {totalElapsed/elapsedCount} мс.");
+            #endregion
+
+
+            timer.Start();
         }
 
         // Извлекает данные с сервера, если успешно - возвращает true
