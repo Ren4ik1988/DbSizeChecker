@@ -85,8 +85,6 @@ namespace DbSizeCheker
 
                 List<DbSize> dbInfo;
 
-                var dbInfoTask = postgreSqlService.GetDbsSize(cs.ConnectionString);
-
                 try
                 {
                     dbInfo = postgreSqlService.GetDbsSize(cs.ConnectionString);
@@ -97,7 +95,7 @@ namespace DbSizeCheker
                     continue;
                 }
 
-                serverInfoCollection.Add(cs.Name, postgreSqlService.GetDbsSize(cs.ConnectionString));
+                serverInfoCollection.Add(cs.Name, dbInfo);
             }
 
             if (serverInfoCollection.Count() > 0)
