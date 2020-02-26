@@ -12,7 +12,6 @@ namespace DbSizeCheker
     {
         private static GoogleService googleService;
         private static PostgreSqlService postgreSqlService;
-        private static List<ConnectionStringSettings> connectionStrings;
         private static Timer timer;
         private static Dictionary<string, List<DbSize>> serverInfoCollection;
 
@@ -23,8 +22,9 @@ namespace DbSizeCheker
             if(Configurator.IsConfigurationCorrect())
             {
                 postgreSqlService = new PostgreSqlService();
-                connectionStrings = Configurator.ConnectionStrings;
                 serverInfoCollection = new Dictionary<string, List<DbSize>>();
+
+                var connectionStrings = Configurator.ConnectionStrings;
 
                 Console.WriteLine("Проверка подключения к сервису \"Google SpreadSheets\".\n\r");
                 prepareGoogleTables();
@@ -64,22 +64,17 @@ namespace DbSizeCheker
             var timer = sender as Timer;
             timer.Stop();
 
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
             if (await extractDbInfoAsync())
             {
                 await googleService.UpdateSpreadSheetAsync(serverInfoCollection);
 
-                Console.WriteLine("Таблица обновлена.\n\r");
+                Console.WriteLine("\n\rТаблица обновлена.\n\r");
             }
             else
             {
                 Console.WriteLine($"Не удалось подключиться ни к одному из серверов баз данных. Повторная попытка через {Configurator.TimerInterval} секунд.\n\r");
             }
 
-            stopwatch.Stop();
-            Console.WriteLine($"Затрачено {stopwatch.ElapsedMilliseconds} мс.");
             timer.Start();
         }
 
@@ -89,9 +84,9 @@ namespace DbSizeCheker
             serverInfoCollection.Clear();
 
             var tasks = new List<Task<List<DbSize>>>();
-            var connStrings = new List<ConnectionStringSettings>(connectionStrings);
+            var connectionStrings = Configurator.ConnectionStrings;
 
-            foreach (var cs in connStrings)
+            foreach (var cs in connectionStrings)
             {
                 Console.WriteLine($"Отправка запроса на {cs.Name}");
                 tasks.Add(postgreSqlService.GetDbsSizeAsync(cs.ConnectionString));
@@ -101,9 +96,9 @@ namespace DbSizeCheker
             {
                 var finished = await Task.WhenAny(tasks);
                 var index = tasks.IndexOf(finished);
-                var serverName = connStrings[index].Name;
-                tasks.Remove(finished);
-                connStrings.RemoveAt(index);
+                var serverName = connectionStrings[index].Name;
+                tasks.RemoveAt(index);
+                connectionStrings.RemoveAt(index);
 
                 try
                 {
@@ -117,36 +112,6 @@ namespace DbSizeCheker
             }
 
             return serverInfoCollection.Any();
-
-
-            //serverInfoCollection.Clear();
-
-            //foreach (var cs in connectionStrings)
-            //{
-            //    Console.WriteLine($"Извлечение данных с сервера \"{cs.Name}\"...");
-
-            //    List<DbSize> dbInfo;
-
-            //    try
-            //    {
-            //        dbInfo = postgreSqlService.GetDbsSize(cs.ConnectionString);
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        Console.WriteLine($"Ошибка при подключении к серверу \"{cs.Name}\". Проверьте корректность строки подключения.");
-            //        continue;
-            //    }
-
-            //    serverInfoCollection.Add(cs.Name, dbInfo);
-            //}
-
-            //if (serverInfoCollection.Count() > 0)
-            //{
-            //    countFreeDiskSpace();
-            //    return true;
-            //}
-
-            //return false;
         }
 
         // Рассчет свободного места на диске
