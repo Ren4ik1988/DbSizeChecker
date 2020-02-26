@@ -32,12 +32,11 @@ namespace DbSizeCheker
                 timer = new Timer(TimeSpan.FromSeconds(Configurator.TimerInterval).TotalMilliseconds);
                 timer.AutoReset = true;
                 timer.Elapsed += updateData;
-                timer.Enabled = true;
 
                 Console.WriteLine($"\n\rПрограмма запущена. Интервал обновления данных - {Configurator.TimerInterval} секунд. Для выхода из программы нажмите клавишу \"Q\"\n\r");
 
-                // Первый запуск метода вручную, так как таймер сработает только через указанный интервал
-                updateData(null, null);
+                // Первый запуск метода вручную
+                updateData(timer, null);
 
 
                 //Закрытие программы по клавише
@@ -60,6 +59,10 @@ namespace DbSizeCheker
         // Метод вызывается по событию timer.Elapsed
         private static async void updateData(object sender, ElapsedEventArgs e)
         {
+            //Для избежания возможного перекрытия вызова метода, управляем таймером внутри метода
+            var timer = sender as Timer;
+            timer.Stop();
+
             if (extractDbInfo())
             {
                 Console.WriteLine("Данные успешно извлечены.");
@@ -72,6 +75,8 @@ namespace DbSizeCheker
             {
                 Console.WriteLine($"Не удалось подключиться ни к одному из серверов баз данных. Повторная попытка через {Configurator.TimerInterval} секунд.\n\r");
             }
+
+            timer.Start();
         }
 
         // Извлекает данные с сервера, если успешно - возвращает true
