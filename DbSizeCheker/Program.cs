@@ -111,6 +111,8 @@ namespace DbSizeCheker
                 }
             }
 
+            countFreeDiskSpace();
+
             return serverInfoCollection.Any();
         }
 
