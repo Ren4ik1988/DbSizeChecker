@@ -91,7 +91,7 @@ namespace DbSizeCheker
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Ошибка при подключения к серверу \"{cs.Name}\". Проверьте корректность строки подключения.");
+                    Console.WriteLine($"Ошибка при подключении к серверу \"{cs.Name}\". Проверьте корректность строки подключения.");
                     continue;
                 }
 
