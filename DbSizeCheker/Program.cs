@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
@@ -63,10 +64,11 @@ namespace DbSizeCheker
             var timer = sender as Timer;
             timer.Stop();
 
-            if (extractDbInfo())
-            {
-                Console.WriteLine("Данные успешно извлечены.");
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
 
+            if (await extractDbInfoAsync())
+            {
                 await googleService.UpdateSpreadSheetAsync(serverInfoCollection);
 
                 Console.WriteLine("Таблица обновлена.\n\r");
@@ -76,40 +78,75 @@ namespace DbSizeCheker
                 Console.WriteLine($"Не удалось подключиться ни к одному из серверов баз данных. Повторная попытка через {Configurator.TimerInterval} секунд.\n\r");
             }
 
+            stopwatch.Stop();
+            Console.WriteLine($"Затрачено {stopwatch.ElapsedMilliseconds} мс.");
             timer.Start();
         }
 
         // Извлекает данные с сервера, если успешно - возвращает true
-        private static bool extractDbInfo()
+        private async static Task<bool> extractDbInfoAsync()
         {
             serverInfoCollection.Clear();
 
-            foreach (var cs in connectionStrings)
-            {
-                Console.WriteLine($"Извлечение данных с сервера \"{cs.Name}\"...");
+            var tasks = new List<Task<List<DbSize>>>();
+            var connStrings = new List<ConnectionStringSettings>(connectionStrings);
 
-                List<DbSize> dbInfo;
+            foreach (var cs in connStrings)
+            {
+                Console.WriteLine($"Отправка запроса на {cs.Name}");
+                tasks.Add(postgreSqlService.GetDbsSizeAsync(cs.ConnectionString));
+            }
+
+            while(tasks.Any())
+            {
+                var finished = await Task.WhenAny(tasks);
+                var index = tasks.IndexOf(finished);
+                var serverName = connStrings[index].Name;
+                tasks.Remove(finished);
+                connStrings.RemoveAt(index);
 
                 try
                 {
-                    dbInfo = postgreSqlService.GetDbsSize(cs.ConnectionString);
+                    serverInfoCollection.Add(serverName, await finished);
+                    Console.WriteLine($"Данные с сервера {serverName} успешно загружены.");
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine($"Ошибка при подключении к серверу \"{cs.Name}\". Проверьте корректность строки подключения.");
-                    continue;
+                    Console.WriteLine($"Сервер {serverName} недоступен, проверьте строку подключения.");
                 }
-
-                serverInfoCollection.Add(cs.Name, dbInfo);
             }
 
-            if (serverInfoCollection.Count() > 0)
-            {
-                countFreeDiskSpace();
-                return true;
-            }
+            return serverInfoCollection.Any();
 
-            return false;
+
+            //serverInfoCollection.Clear();
+
+            //foreach (var cs in connectionStrings)
+            //{
+            //    Console.WriteLine($"Извлечение данных с сервера \"{cs.Name}\"...");
+
+            //    List<DbSize> dbInfo;
+
+            //    try
+            //    {
+            //        dbInfo = postgreSqlService.GetDbsSize(cs.ConnectionString);
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Console.WriteLine($"Ошибка при подключении к серверу \"{cs.Name}\". Проверьте корректность строки подключения.");
+            //        continue;
+            //    }
+
+            //    serverInfoCollection.Add(cs.Name, dbInfo);
+            //}
+
+            //if (serverInfoCollection.Count() > 0)
+            //{
+            //    countFreeDiskSpace();
+            //    return true;
+            //}
+
+            //return false;
         }
 
         // Рассчет свободного места на диске

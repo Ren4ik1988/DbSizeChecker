@@ -19,18 +19,18 @@ namespace DbSizeCheker
                      sum (pg_database_size(pg_database.datname))
               FROM pg_database";
 
-        public List<DbSize> GetDbsSize(string connectionString)
+        public async Task<List<DbSize>> GetDbsSizeAsync(string connectionString)
         {
             var dbs = new List<DbSize>();
             using (var connection = new NpgsqlConnection(connectionString))
             using (var command = new NpgsqlCommand(GET_DATABASES_SIZE, connection))           
             {
-                connection.Open();
+                await connection.OpenAsync();
                 var lastUpdated = DateTime.Now.ToString("dd.MM.yyyy");
 
-                using (var reader = command.ExecuteReader())
+                using (var reader = await command.ExecuteReaderAsync())
                 {
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         var dbInfo = new DbSize
                         {
