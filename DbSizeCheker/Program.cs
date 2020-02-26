@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -59,13 +58,13 @@ namespace DbSizeCheker
         }
 
         // Метод вызывается по событию timer.Elapsed
-        private static void updateData(object sender, ElapsedEventArgs e)
+        private static async void updateData(object sender, ElapsedEventArgs e)
         {
             if (extractDbInfo())
             {
                 Console.WriteLine("Данные успешно извлечены.");
 
-                googleService.UpdateSpreadSheet(serverInfoCollection);
+                await googleService.UpdateSpreadSheetAsync(serverInfoCollection);
 
                 Console.WriteLine("Таблица обновлена.\n\r");
             }
@@ -85,6 +84,8 @@ namespace DbSizeCheker
                 Console.WriteLine($"Извлечение данных с сервера \"{cs.Name}\"...");
 
                 List<DbSize> dbInfo;
+
+                var dbInfoTask = postgreSqlService.GetDbsSize(cs.ConnectionString);
 
                 try
                 {

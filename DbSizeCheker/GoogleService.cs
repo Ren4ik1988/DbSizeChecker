@@ -5,9 +5,9 @@ using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Util.Store;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -198,24 +198,28 @@ namespace DbSizeCheker
         }
 
         // Очистка старых записей(если количество БД на сервере уменьшилось, лишние строки в таблице должны быть удалены) и публикация новых.
-        public void UpdateSpreadSheet(Dictionary<string, List<DbSize>> serverInfoCollection)
+        public async Task UpdateSpreadSheetAsync(Dictionary<string, List<DbSize>> serverInfoCollection)
         {
-            BatchUpdateValuesRequest addRequest = new BatchUpdateValuesRequest();
             BatchClearValuesRequest clearRequest = new BatchClearValuesRequest();
-
-            clearRequest.Ranges = new List<string>();           
-
-            addRequest.Data = new List<ValueRange>();
-            addRequest.ValueInputOption = "USER_ENTERED";
-
+            clearRequest.Ranges = new List<string>();
             foreach (var server in serverInfoCollection)
             {
                 clearRequest.Ranges.Add($"{server.Key}!A2:D50");
+            }
+            // Асинхронно запускаем очистку таблицы
+            var clearTask = _service.Spreadsheets.Values.BatchClear(clearRequest, _spreadSheetId).ExecuteAsync();
+
+            BatchUpdateValuesRequest addRequest = new BatchUpdateValuesRequest();
+            addRequest.Data = new List<ValueRange>();
+            addRequest.ValueInputOption = "USER_ENTERED";
+            foreach (var server in serverInfoCollection)
+            {
                 addRequest.Data.Add(replaceContnet(server.Key, server.Value));
             }
 
-            _service.Spreadsheets.Values.BatchClear(clearRequest, _spreadSheetId).Execute();
-            _service.Spreadsheets.Values.BatchUpdate(addRequest, _spreadSheetId).Execute();
+            //Ждем пока завершится асинхронная задача очистики и отправляем запрос на запись обновленных данных
+            await clearTask;
+            await _service.Spreadsheets.Values.BatchUpdate(addRequest, _spreadSheetId).ExecuteAsync();
         }
 
         #endregion
