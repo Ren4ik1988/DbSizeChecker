@@ -15,6 +15,9 @@ namespace DbSizeCheker
         private static Timer timer;
         private static Dictionary<string, List<DbSize>> serverInfoCollection;
 
+        private static long totalElapsedTime;
+        private static long totalElapsedCount;
+
         static void Main(string[] args)
         {
             Console.WriteLine("Проверка  файла конфигурации...");
@@ -64,6 +67,9 @@ namespace DbSizeCheker
             var timer = sender as Timer;
             timer.Stop();
 
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             if (await extractDbInfoAsync())
             {
                 await googleService.UpdateSpreadSheetAsync(serverInfoCollection);
@@ -74,6 +80,10 @@ namespace DbSizeCheker
             {
                 Console.WriteLine($"Не удалось подключиться ни к одному из серверов баз данных. Повторная попытка через {Configurator.TimerInterval} секунд.\n\r");
             }
+
+            stopwatch.Stop();
+            totalElapsedTime += stopwatch.ElapsedMilliseconds;
+            Console.WriteLine($"Время затраченное на обработку {stopwatch.ElapsedMilliseconds} мс. Среднее время обработки за {++totalElapsedCount} - {totalElapsedTime/totalElapsedCount} мс\n\r");
 
             timer.Start();
         }
