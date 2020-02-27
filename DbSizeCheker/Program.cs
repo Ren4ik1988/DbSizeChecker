@@ -18,8 +18,8 @@ namespace DbSizeCheker
         private static Dictionary<string, List<DbSize>> serverInfoCollection;
 
         #region Diagnostic (uncommit to include diagnostic)
-        //private static long elapsedCount;
-        //private static long totalElapsed;
+        private static long elapsedCount;
+        private static long totalElapsed;
         #endregion
 
         static void Main(string[] args)
@@ -70,8 +70,8 @@ namespace DbSizeCheker
             timer.Stop();
 
             #region Diagnostic (uncommit to include diagnostic)
-            //Stopwatch stopwatch = new Stopwatch();
-            //stopwatch.Start();
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             #endregion
 
             if (extractDbInfo())
@@ -88,9 +88,9 @@ namespace DbSizeCheker
             }
 
             #region Diagnostic (uncommit to include diagnostic)
-            //stopwatch.Stop();
-            //totalElapsed += stopwatch.ElapsedMilliseconds;
-            //Console.WriteLine($"Затрачено {stopwatch.ElapsedMilliseconds} мс. Среднее значение за {++elapsedCount} итераций - {totalElapsed/elapsedCount} мс.");
+            stopwatch.Stop();
+            totalElapsed += stopwatch.ElapsedMilliseconds;
+            Console.WriteLine($"Затрачено {stopwatch.ElapsedMilliseconds} мс. Среднее значение за {++elapsedCount} итераций - {totalElapsed/elapsedCount} мс.");
             #endregion
 
 
